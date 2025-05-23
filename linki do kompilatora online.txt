@@ -1,0 +1,11 @@
+Python :
+
+https://onlinegdb.com/SIr5ZX6H6
+
+<script src="//onlinegdb.com/embed/js/SIr5ZX6H6?theme=dark"></script>
+
+C# :
+
+https://onlinegdb.com/ufudpEPBw8
+
+<script src="//onlinegdb.com/embed/js/ufudpEPBw8?theme=dark"></script>

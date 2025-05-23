@@ -1,0 +1,194 @@
+/*
+
+Kalkulator kalorii – opis działania programu (C#)
+
+Program to kalkulator kalorii, który pozwala użytkownikowi tworzyć posiłki
+z różnych produktów spożywczych i obliczać ich wartości odżywcze oraz koszt.
+
+Użytkownik wpisuje nazwę posiłku, dodaje produkty z informacjami o ilości oraz kaloriach, białku i cenie w 100 g, a program wszystko przelicza.
+
+Klasa FoodItem reprezentuje produkt spożywczy. 
+Zawiera podstawowe dane, a metoda CalculateNutrition() przelicza wartości odżywcze i koszt na podstawie zadanej ilości. 
+Meal to posiłek, który przechowuje wiele produktów i oblicza ich łączną wartość. 
+DailyIntake organizuje wszystkie posiłki w ciągu dnia, pozwala je podsumować i ocenić dzienne spożycie kalorii, białka oraz wydatków.
+
+W metodzie Main() użytkownik wprowadza dane w pętli, a ekran konsoli jest regularnie czyszczony (Console.Clear()), co poprawia czytelność. 
+Po wpisaniu „podsumowanie” program pokazuje zestawienie wszystkich posiłków i na końcu informuje, czy użytkownik zmieścił się w ustalonych limitach.
+
+Zastosowanie var upraszcza kod, automatycznie dopasowując typ zmiennej. 
+Kompozycja klas jest klarowna: DailyIntake zawiera posiłki (Meal), a każdy posiłek składa się z listy produktów (FoodItem).
+
+*/
+
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+
+class FoodItem
+{
+    public string Name { get; }
+    public float Amount { get; }
+    public float CaloriesPer100g { get; }
+    public float ProteinPer100g { get; }
+    public float PricePer100g { get; }
+
+    public FoodItem(string name, float amount, float calories, float protein, float price)
+    {
+        Name = name;
+        Amount = amount;
+        CaloriesPer100g = calories;
+        ProteinPer100g = protein;
+        PricePer100g = price;
+    }
+
+    public (float calories, float protein, float cost) CalculateNutrition()
+    {
+        float ratio = Amount / 100;
+        return (
+            CaloriesPer100g * ratio,
+            ProteinPer100g * ratio,
+            PricePer100g * ratio
+        );
+    }
+}
+
+class Meal
+{
+    private List<FoodItem> items = new List<FoodItem>();
+
+    public void AddItem(FoodItem item)
+    {
+        items.Add(item);
+    }
+
+    public (float calories, float protein, float cost) CalculateTotals()
+    {
+        float totalCalories = 0, totalProtein = 0, totalCost = 0;
+
+        foreach (var item in items)
+        {
+            var (cal, prot, cost) = item.CalculateNutrition();
+            totalCalories += cal;
+            totalProtein += prot;
+            totalCost += cost;
+        }
+
+        return (totalCalories, totalProtein, totalCost);
+    }
+}
+
+class DailyIntake
+{
+    private Dictionary<string, Meal> meals = new Dictionary<string, Meal>();
+
+    public void AddMeal(string name, Meal meal)
+    {
+        meals[name] = meal;
+    }
+
+    public void ShowMealSummaries()
+    {
+        Console.WriteLine("\nPodsumowanie każdego posiłku:");
+        foreach (var pair in meals)
+        {
+            var (cal, prot, cost) = pair.Value.CalculateTotals();
+            Console.WriteLine($"\n{CultureInfo.CurrentCulture.TextInfo.ToTitleCase(pair.Key)}:");
+            Console.WriteLine($"  Kalorie: {cal:F2} kcal");
+            Console.WriteLine($"  Białko: {prot:F2} g");
+            Console.WriteLine($"  Koszt: {cost:F2} zł");
+        }
+    }
+
+    public (float calories, float protein, float cost) CalculateTotals()
+    {
+        float totalCalories = 0, totalProtein = 0, totalCost = 0;
+        foreach (var meal in meals.Values)
+        {
+            var (c, p, cost) = meal.CalculateTotals();
+            totalCalories += c;
+            totalProtein += p;
+            totalCost += cost;
+        }
+
+        return (totalCalories, totalProtein, totalCost);
+    }
+}
+
+class Program
+{
+    static float GetFloat(string prompt)
+    {
+        while (true)
+        {
+            Console.Write(prompt);
+            string input = Console.ReadLine().Replace(",", ".");
+            if (float.TryParse(input, NumberStyles.Any, CultureInfo.InvariantCulture, out float result))
+                return result;
+            Console.WriteLine("Wprowadź poprawną liczbę.");
+        }
+    }
+
+    static void Main()
+    {
+        var daily = new DailyIntake();
+
+        while (true)
+        {
+            Console.Clear();
+            Console.WriteLine("Kalkulator kalorii – Tworzenie posiłków (C#)");
+            Console.Write("\nPodaj nazwę posiłku lub wpisz ('podsumowanie'), aby zakończyć: ");
+            TextInfo ti = CultureInfo.CurrentCulture.TextInfo;
+			string mealName = ti.ToTitleCase(Console.ReadLine().Trim().ToLower());
+
+            if (mealName == "Podsumowanie")
+                break;
+
+            var meal = new Meal();
+            Console.WriteLine($"\nDodaj produkty do posiłku: {mealName}");
+
+            while (true)
+            {
+                Console.WriteLine($"\nDodaj nowy produkt do posiłku: {mealName}");
+                Console.Write("Nazwa produktu: ");
+                string name = Console.ReadLine();
+
+                float amount = GetFloat("Ilość spożyta (w gramach): ");
+                float calories = GetFloat("Kalorie na 100 g: ");
+                float protein = GetFloat("Białko na 100 g: ");
+                float price = GetFloat("Cena za 100 g (zł): ");
+
+                var item = new FoodItem(name, amount, calories, protein, price);
+                meal.AddItem(item);
+
+                Console.Write("Czy chcesz dodać kolejny produkt? (t/n): ");
+                if (Console.ReadLine().Trim().ToLower() != "t")
+                    break;
+            }
+
+            daily.AddMeal(mealName, meal);
+        }
+
+        daily.ShowMealSummaries();
+        var (totalCalories, totalProtein, totalCost) = daily.CalculateTotals();
+
+        Console.WriteLine("\nOgólne podsumowanie wszystkich posiłków:");
+        Console.WriteLine($"  Całkowite kalorie: {totalCalories:F2} kcal");
+        Console.WriteLine($"  Całkowite białko: {totalProtein:F2} g");
+        Console.WriteLine($"  Całkowity koszt: {totalCost:F2} zł");
+
+        if (totalCalories > 2500)
+            Console.WriteLine("\nPrzekroczony bilans kaloryczny – powyżej 2500 kcal.");
+        else
+            Console.WriteLine("\nDeficyt kaloryczny - poniżej 2500 kcal.");
+
+        if (totalProtein < 150)
+            Console.WriteLine("Zbyt mało białka – poniżej 150 g.");
+        else
+            Console.WriteLine("Odpowiednia ilość białka - powyżej 150 g.");
+
+        if (totalCost > 30)
+            Console.WriteLine("Przekroczony dzienny budżet – ponad 30 zł.");
+        else
+            Console.WriteLine("Zmieściłeś się w budżecie - poniżej 30 zł.");
+    }
+}

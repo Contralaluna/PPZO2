@@ -1,0 +1,177 @@
+# Kalkulator kalorii – opis działania programu (Python)
+
+# Program to kalkulator kalorii, który pozwala użytkownikowi tworzyć posiłki
+# z różnych produktów spożywczych i obliczać ich wartości odżywcze oraz koszt.
+
+# Na początku definiowana jest funkcja clear_screen(), która czyści ekran
+# terminala.
+
+# Klasa FoodItem reprezentuje pojedynczy produkt – przechowuje jego nazwę,
+# ilość w gramach oraz dane o kaloriach, białku i cenie na 100 gramów.
+# Jej metoda calculate_nutrition() oblicza te wartości proporcjonalnie
+# do podanej ilości.
+
+# Klasa Meal przechowuje listę produktów tworzących posiłek i potrafi obliczyć
+# łączną wartość odżywczą oraz koszt całego posiłku.
+
+# Klasa DailyIntake służy do przechowywania wielu posiłków i wyświetlania ich
+# podsumowania, a także sumowania danych z całego dnia.
+
+# Funkcja get_float(prompt) umożliwia pobieranie liczb od użytkownika,
+# automatycznie zamieniając przecinki na kropki i ponawiając pytanie w razie błędu.
+
+# Główna funkcja main() rozpoczyna program, inicjalizując nowy dzienny zestaw
+# posiłków. W pętli użytkownik wpisuje kolejne posiłki i produkty,
+# podając dane o ilości, kaloriach, białku i cenie.
+
+# Każdy produkt jest dodawany do aktualnego posiłku, a ten – po zakończeniu –
+# trafia do dziennego zestawu. Po wpisaniu „podsumowanie” program kończy
+# przyjmowanie danych, pokazuje szczegółowe informacje o każdym posiłku,
+# sumuje całodzienne spożycie i wyświetla ocenę – czy bilans kaloryczny
+# jest przekroczony, czy białka jest wystarczająco i czy zmieszczono się w budżecie.
+# ------------------------------------------------------------------------------
+# KOMPOZYCJA :
+# DailyIntake
+# └── posiłki (np."obiad") → każdy to:
+#     └── Meal
+#         └── lista produktów (FoodItem)
+
+
+import os  
+
+def clear_screen():
+    if os.name == "nt":
+        os.system("cls")
+    else:
+        os.system("clear")
+
+class FoodItem:
+    def __init__(self, name, amount, calories_per_100g, protein_per_100g, price_per_100g):
+        self.name = name
+        self.amount = amount  # w gramach
+        self.calories_per_100g = calories_per_100g
+        self.protein_per_100g = protein_per_100g
+        self.price_per_100g = price_per_100g
+
+    def calculate_nutrition(self):
+        ratio = self.amount / 100
+        calories = self.calories_per_100g * ratio
+        protein = self.protein_per_100g * ratio
+        cost = self.price_per_100g * ratio
+        return calories, protein, cost
+
+class Meal:
+    def __init__(self):
+        self.items = []  
+
+    def add_item(self, item):
+        self.items.append(item)
+
+    def calculate_totals(self):
+        total_calories = 0
+        total_protein = 0
+        total_cost = 0
+        for item in self.items:
+            calories, protein, cost = item.calculate_nutrition()
+            total_calories += calories
+            total_protein += protein
+            total_cost += cost
+        return total_calories, total_protein, total_cost
+        
+class DailyIntake:
+    def __init__(self):
+        self.meals = {}
+
+    def add_meal(self, name, meal):
+        self.meals[name] = meal
+
+    def show_meal_summaries(self):
+        print("\nPodsumowanie każdego posiłku:")
+        for name, meal in self.meals.items():
+            cal, prot, cost = meal.calculate_totals()
+            print(f"\n{name.capitalize()}:")
+            print(f"  Kalorie: {cal:.2f} kcal")
+            print(f"  Białko: {prot:.2f} g")
+            print(f"  Koszt: {cost:.2f} zł")
+
+    def calculate_totals(self):
+        total_calories = 0
+        total_protein = 0
+        total_cost = 0
+        for meal in self.meals.values():
+            cals, prot, cost = meal.calculate_totals()
+            total_calories += cals
+            total_protein += prot
+            total_cost += cost
+        return total_calories, total_protein, total_cost        
+
+def get_float(prompt):
+    while True:
+        try:
+            return float(input(prompt).replace(",", "."))
+        except ValueError:
+            print("Wprowadź poprawną liczbę.")
+
+def main():
+    
+    
+    daily = DailyIntake()
+
+    while True:
+        clear_screen()
+        print("Kalkulator kalorii – Tworzenie posiłków (Python)")
+        meal_name = input("\nPodaj nazwę posiłku lub Wpisz ('podsumowanie'), aby zakończyć: ").strip().lower()
+        
+        if meal_name == "podsumowanie":
+            break
+
+        meal = Meal()
+
+        print(f"Dodaj produkty do posiłku: {meal_name.capitalize()}")
+
+        while True:
+            print(f"\nDodaj nowy produkt do posiłku: {meal_name.capitalize()}")
+            name = input("Nazwa produktu: ")
+            amount = get_float("Ilość spożyta (w gramach): ")
+            calories = get_float("Kalorie na 100 g: ")
+            protein = get_float("Białko na 100 g: ")
+            price = get_float("Cena za 100 g (zł): ")
+
+            item = FoodItem(name, amount, calories, protein, price)
+            meal.add_item(item)
+
+            cont = input("Czy chcesz dodać kolejny produkt? (t/n): ").strip().lower()
+            if cont != 't':
+                break
+        
+        daily.add_meal(meal_name, meal)
+        
+        
+    daily.show_meal_summaries()
+   
+    total_calories, total_protein, total_cost = daily.calculate_totals()
+    
+    print("\nOgólne podsumowanie wszystkich posiłków:")
+    print(f"  Całkowite kalorie: {total_calories:.2f} kcal")
+    print(f"  Całkowite białko: {total_protein:.2f} g")
+    print(f"  Całkowity koszt: {total_cost:.2f} zł")
+
+    # warunki
+    if total_calories > 2500:
+        print("\nPrzekroczony bilans kaloryczny – powyżej 2500 kcal.")
+    else:
+        print("\nDeficyt kaloryczny - poniżej 2500 kcal.")
+
+    if total_protein < 150:
+         print("Zbyt mało białka – poniżej 150 g.")
+    else:
+         print("Odpowiednia ilość białka - powyżej 150 g.")
+
+    if total_cost > 30:
+        print("Przekroczony dzienny budżet – ponad 30 zł.")
+    else:
+        print("Zmieściłeś się w budżecie - poniżej 30 zł.")
+
+  
+if __name__ == "__main__":
+    main()
